@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0f1320">
+<title>Gerenciador de Atividades</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap">
+<style>
+/* ===== 2. CSS: cores, fontes, espaçamentos ===== */
+:root {
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  --bg: #f4f6fb; --surface: #ffffff; --text: #1d2433; --muted: #5d6678;
+  --border: #dde2ee; --primary: #4f46e5; --primary-text: #ffffff;
+  --ok: #16a34a; --alta: #dc2626; --media: #b45309; --baixa: #2563eb;
+  --shadow: 0 2px 10px rgba(30, 41, 80, .08);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1320; --surface: #181d2e; --text: #e8ebf5; --muted: #9aa3b8;
+    --border: #2a3148; --primary: #818cf8; --primary-text: #0f1320;
+    --ok: #4ade80; --alta: #f87171; --media: #fbbf24; --baixa: #60a5fa;
+    --shadow: 0 2px 10px rgba(0, 0, 0, .4);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1320; --surface: #181d2e; --text: #e8ebf5; --muted: #9aa3b8;
+  --border: #2a3148; --primary: #818cf8; --primary-text: #0f1320;
+  --ok: #4ade80; --alta: #f87171; --media: #fbbf24; --baixa: #60a5fa;
+  --shadow: 0 2px 10px rgba(0, 0, 0, .4);
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  line-height: 1.5;
+}
+.container { max-width: 760px; margin: 0 auto; padding: 24px 16px 48px; }
+h1 { margin: 0 0 4px; font-size: 1.8rem; }
+.subtitulo { margin: 0 0 20px; color: var(--muted); }
+.painel {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 18px; margin-bottom: 18px; box-shadow: var(--shadow);
+}
+.painel h2 { margin: 0 0 12px; font-size: 1.05rem; }
+
+/* Formulário */
+form { display: grid; grid-template-columns: 1fr; gap: 12px; }
+label { display: flex; flex-direction: column; gap: 4px; font-size: .88rem; color: var(--muted); font-weight: 600; }
+input, select {
+  font: inherit; color: var(--text); background: var(--bg);
+  border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; width: 100%;
+}
+input:focus-visible, select:focus-visible, button:focus-visible {
+  outline: 2px solid var(--primary); outline-offset: 2px;
+}
+.campo-nome, form button { grid-column: 1 / -1; }
+button {
+  font: inherit; cursor: pointer; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text); padding: 10px 14px;
+}
+.btn-principal {
+  background: var(--primary); color: var(--primary-text); border-color: var(--primary);
+  font-weight: 700;
+}
+.btn-principal:hover { filter: brightness(1.08); }
+
+/* Progresso */
+.progresso-texto { display: flex; justify-content: space-between; gap: 8px; font-weight: 600; margin-bottom: 8px; }
+.barra { height: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 99px; overflow: hidden; }
+.barra > div { height: 100%; width: 0; background: var(--ok); transition: width .3s ease; }
+
+/* Filtros */
+.filtros { display: flex; flex-wrap: wrap; gap: 8px; }
+.filtros button { border-radius: 99px; padding: 6px 14px; font-size: .9rem; }
+.filtros button[aria-pressed="true"] { background: var(--primary); color: var(--primary-text); border-color: var(--primary); }
+
+/* Cartões */
+#lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.cartao {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  background: var(--surface); border: 1px solid var(--border);
+  border-left: 5px solid var(--baixa); border-radius: 12px; padding: 12px 14px; box-shadow: var(--shadow);
+}
+.cartao.alta { border-left-color: var(--alta); }
+.cartao.media { border-left-color: var(--media); }
+.cartao.baixa { border-left-color: var(--baixa); }
+.cartao input[type="checkbox"] { width: 22px; height: 22px; flex: none; accent-color: var(--ok); }
+.info { flex: 1 1 200px; min-width: 0; }
+.nome { font-weight: 700; overflow-wrap: anywhere; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 10px; font-size: .85rem; color: var(--muted); margin-top: 4px; }
+.etiqueta { border: 1px solid var(--border); border-radius: 99px; padding: 0 8px; }
+.atrasada { color: var(--alta); font-weight: 700; }
+.cartao.concluida .nome { text-decoration: line-through; color: var(--muted); }
+.cartao.concluida { opacity: .75; }
+.btn-excluir { color: var(--alta); }
+.vazio { text-align: center; color: var(--muted); padding: 24px 8px; }
+
+/* Responsivo */
+@media (min-width: 640px) {
+  form { grid-template-columns: repeat(3, 1fr); }
+  h1 { font-size: 2.1rem; }
+}
+@media (max-width: 480px) {
+  .btn-excluir { width: 100%; }
+}
+/* ===== Visual aprimorado ===== */
+:root {
+  --g1: #6366f1; --g2: #a855f7; --g3: #ec4899;
+  --grad: linear-gradient(135deg, var(--g1), var(--g2) 55%, var(--g3));
+  --glow-a: rgba(99, 102, 241, .22); --glow-b: rgba(236, 72, 153, .16);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --glow-a: rgba(129, 140, 248, .24); --glow-b: rgba(244, 114, 182, .14); }
+}
+:root[data-theme="dark"] { --glow-a: rgba(129, 140, 248, .24); --glow-b: rgba(244, 114, 182, .14); }
+
+body {
+  font-family: "Poppins", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  background:
+    radial-gradient(50rem 28rem at 90% -5%, var(--glow-a), transparent 60%),
+    radial-gradient(40rem 26rem at -10% 25%, var(--glow-b), transparent 60%),
+    var(--bg);
+  background-attachment: fixed;
+}
+.container { padding-top: 20px; }
+
+.hero {
+  position: relative; overflow: hidden; background: var(--grad); color: #fff;
+  border-radius: 24px; padding: 28px 24px; margin-bottom: 20px;
+  box-shadow: 0 16px 36px -14px rgba(124, 58, 237, .6);
+}
+.hero::before, .hero::after { content: ""; position: absolute; border-radius: 50%; background: rgba(255, 255, 255, .14); }
+.hero::before { width: 190px; height: 190px; right: -40px; top: -70px; }
+.hero::after { width: 110px; height: 110px; right: 80px; bottom: -55px; background: rgba(255, 255, 255, .1); }
+.hero h1 { position: relative; margin: 0 0 6px; font-weight: 800; letter-spacing: -.02em; font-size: clamp(1.6rem, 5vw, 2.3rem); }
+.hero p { position: relative; margin: 0; opacity: .92; max-width: 36ch; }
+.selo {
+  position: relative; display: inline-block; margin-bottom: 10px; font-size: .72rem; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase; background: rgba(255, 255, 255, .22);
+  padding: 4px 12px; border-radius: 99px;
+}
+
+.painel { border-radius: 20px; padding: 22px; box-shadow: 0 12px 30px -16px rgba(60, 50, 140, .35); }
+.painel h2, #t-lista { display: flex; align-items: center; gap: 10px; font-size: 1.1rem; font-weight: 700; }
+.painel h2::before, #t-lista::before { content: ""; width: 6px; height: 20px; border-radius: 4px; background: var(--grad); }
+
+label { font-size: .74rem; text-transform: uppercase; letter-spacing: .06em; }
+input, select {
+  border: 1.5px solid var(--border); border-radius: 12px; padding: 12px 14px;
+  transition: border-color .2s, box-shadow .2s;
+}
+input:hover, select:hover { border-color: var(--g1); }
+input:focus, select:focus { outline: none; border-color: var(--g1); box-shadow: 0 0 0 4px var(--glow-a); }
+
+button { border-radius: 12px; font-weight: 600; transition: transform .15s, box-shadow .2s, background .2s, border-color .2s; }
+.btn-principal {
+  background: var(--grad); color: #fff; border: 0; padding: 14px; font-size: 1rem;
+  box-shadow: 0 12px 24px -12px rgba(124, 58, 237, .9);
+}
+.btn-principal:hover { filter: none; transform: translateY(-2px); box-shadow: 0 16px 28px -12px rgba(124, 58, 237, 1); }
+.btn-principal:active { transform: translateY(0); }
+
+#prog-pct { font-size: 1.5rem; font-weight: 800; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.barra { height: 16px; padding: 2px; }
+.barra > div {
+  border-radius: 99px;
+  background-image: repeating-linear-gradient(45deg, rgba(255, 255, 255, .28) 0 10px, transparent 10px 20px), linear-gradient(90deg, #22c55e, #22d3ee);
+  background-size: 28px 28px, 100% 100%;
+  animation: listras 1s linear infinite;
+}
+@keyframes listras { to { background-position: 28px 0, 0 0; } }
+
+.filtros button { padding: 7px 16px; font-size: .85rem; }
+.filtros button:hover { transform: translateY(-1px); border-color: var(--g1); }
+.filtros button[aria-pressed="true"] {
+  background: var(--grad); color: #fff; border-color: transparent; box-shadow: 0 8px 18px -8px rgba(124, 58, 237, .9);
+}
+
+.cartao {
+  border-radius: 16px; padding: 14px 16px; border-left-width: 6px;
+  animation: entra .35s ease both; transition: transform .2s, box-shadow .2s;
+}
+.cartao:hover { transform: translateY(-3px); box-shadow: 0 18px 30px -18px rgba(60, 50, 140, .5); }
+@keyframes entra { from { opacity: 0; transform: translateY(8px); } }
+.nome { font-size: 1.02rem; }
+
+.cartao input[type="checkbox"] {
+  -webkit-appearance: none; appearance: none; width: 26px; height: 26px; padding: 0; border-radius: 50%;
+  border: 2px solid var(--border); background: var(--bg); display: grid; place-content: center; cursor: pointer;
+}
+.cartao input[type="checkbox"]::after { content: "✓"; color: #fff; font-weight: 800; font-size: 15px; transform: scale(0); transition: transform .15s; }
+.cartao input[type="checkbox"]:checked { background: linear-gradient(135deg, #22c55e, #16a34a); border-color: transparent; }
+.cartao input[type="checkbox"]:checked::after { transform: scale(1); }
+
+.etiqueta { font-weight: 600; font-size: .78rem; padding: 2px 10px; background: var(--bg); }
+.etiqueta.p-alta { color: var(--alta); border-color: currentColor; background: color-mix(in srgb, var(--alta) 12%, transparent); }
+.etiqueta.p-media { color: var(--media); border-color: currentColor; background: color-mix(in srgb, var(--media) 12%, transparent); }
+.etiqueta.p-baixa { color: var(--baixa); border-color: currentColor; background: color-mix(in srgb, var(--baixa) 12%, transparent); }
+
+.btn-excluir { background: transparent; border-color: transparent; padding: 8px 12px; font-size: .85rem; }
+.btn-excluir:hover { background: color-mix(in srgb, var(--alta) 14%, transparent); border-color: var(--alta); }
+
+.vazio { border: 2px dashed var(--border); border-radius: 16px; background: var(--surface); }
+.vazio::before { content: "🗒️"; display: block; font-size: 2rem; margin-bottom: 4px; }
+
+/* Anotações */
+.painel-notas { margin-top: 24px; }
+textarea {
+  font: inherit; color: var(--text); background: var(--bg); width: 100%; resize: vertical; min-height: 90px;
+  border: 1.5px solid var(--border); border-radius: 12px; padding: 12px 14px;
+  transition: border-color .2s, box-shadow .2s;
+}
+textarea:hover { border-color: var(--g1); }
+textarea:focus { outline: none; border-color: var(--g1); box-shadow: 0 0 0 4px var(--glow-a); }
+:root { --xn-bg: #f3f3f5; --xn-card: #ffffff; --xn-text: #1a1a1c; --xn-sub: #8a8a90; --xn-acc: #ff6700; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --xn-bg: #131315; --xn-card: #212125; --xn-text: #f2f2f4; --xn-sub: #94949b; }
+}
+:root[data-theme="dark"] { --xn-bg: #131315; --xn-card: #212125; --xn-text: #f2f2f4; --xn-sub: #94949b; }
+
+.painel-notas { background: var(--xn-bg); color: var(--xn-text); border-radius: 28px; padding: 22px 16px; }
+.xn-cab { display: flex; flex-direction: column; margin: 6px 4px 14px; }
+.painel-notas h2 { font-size: 2rem; font-weight: 700; margin: 0; }
+.painel-notas h2::before { display: none; }
+#xn-cont { color: var(--xn-sub); font-size: .85rem; }
+.xn-busca { display: flex; align-items: center; gap: 10px; background: var(--xn-card); border-radius: 99px; padding: 0 16px; height: 44px; margin-bottom: 16px; }
+.xn-busca:focus-within { box-shadow: 0 0 0 2px var(--xn-acc); }
+.xn-busca input { flex: 1; min-width: 0; border: 0; background: transparent; box-shadow: none; padding: 0; color: var(--xn-text); }
+.xn-busca input:focus { box-shadow: none; }
+
+.xn-grade { list-style: none; margin: 0; padding: 0; columns: 2; column-gap: 10px; }
+.xn-grade li { break-inside: avoid; margin: 0 0 10px; }
+.xn-card { display: block; width: 100%; text-align: left; border: 0; background: var(--xn-card); color: var(--xn-text); border-radius: 18px; padding: 14px; font-weight: 400; }
+.xn-card:hover { transform: translateY(-2px); box-shadow: 0 10px 20px -12px rgba(0, 0, 0, .4); }
+.xn-t, .xn-p { overflow: hidden; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; }
+.xn-t { font-weight: 700; -webkit-line-clamp: 2; }
+.xn-p { margin-top: 6px; font-size: .88rem; color: var(--xn-sub); white-space: pre-line; -webkit-line-clamp: 5; }
+.xn-d { margin-top: 10px; font-size: .75rem; color: var(--xn-sub); }
+.xn-vazio { column-span: all; text-align: center; color: var(--xn-sub); padding: 36px 8px; }
+.xn-vazio::before { content: "📒"; display: block; font-size: 2.2rem; margin-bottom: 4px; }
+.xn-fab {
+  position: sticky; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); margin: 16px 0 0 auto;
+  display: grid; place-content: center; width: 58px; height: 58px; padding: 0; border: 0; border-radius: 50%;
+  background: var(--xn-acc); color: #fff; font-size: 2rem; line-height: 1; box-shadow: 0 12px 24px -8px rgba(255, 103, 0, .8);
+}
+.xn-fab:hover { transform: translateY(-2px); }
+
+.xn-ed { position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column; background: var(--xn-card); color: var(--xn-text); animation: entra .2s ease both; }
+.xn-ed[hidden] { display: none; }
+.xn-barra { display: flex; justify-content: space-between; align-items: center; padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 10px; }
+.xn-barra button { border: 0; background: transparent; color: var(--xn-text); font-size: 1.6rem; line-height: 1; width: 44px; height: 44px; border-radius: 50%; padding: 0; }
+.xn-barra button:hover { background: var(--xn-bg); }
+#xn-ok { color: var(--xn-acc); font-weight: 800; }
+.xn-acoes { display: flex; gap: 4px; }
+.xn-corpo { flex: 1; min-height: 0; display: flex; flex-direction: column; width: 100%; max-width: 760px; margin: 0 auto; padding: 0 20px calc(16px + env(safe-area-inset-bottom, 0px)); }
+.xn-ed input, .xn-ed textarea { border: 0; border-radius: 0; background: transparent; box-shadow: none; padding: 0; min-height: 0; color: var(--xn-text); }
+.xn-ed input:focus, .xn-ed textarea:focus { border: 0; box-shadow: none; outline: none; }
+.xn-titulo { font-size: 1.6rem; font-weight: 700; margin-bottom: 4px; }
+.xn-data { font-size: .8rem; color: var(--xn-sub); margin-bottom: 14px; }
+.xn-texto { flex: 1; resize: none; font-size: 1.05rem; line-height: 1.7; }
+@media (min-width: 640px) { .xn-grade { columns: 3; } }
+
+/* Observações por atividade */
+.campo-obs textarea { min-height: 72px; }
+.obs {
+  flex-basis: 100%; margin-top: 8px; padding: 8px 12px; font-size: .88rem; color: var(--text);
+  background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+  white-space: pre-line; overflow-wrap: anywhere;
+}
+.obs-edit { margin-top: 8px; min-height: 76px; font-size: .9rem; }
+.obs-acoes { display: flex; gap: 8px; margin-top: 8px; }
+.btn-mini { padding: 6px 14px; font-size: .85rem; }
+.acoes { display: flex; flex-wrap: wrap; gap: 4px; }
+.btn-obs { background: transparent; border-color: transparent; padding: 8px 12px; font-size: .85rem; color: var(--muted); }
+.btn-obs:hover { border-color: var(--primary); color: var(--text); }
+@media (max-width: 480px) { .acoes { width: 100%; } .acoes button { flex: 1; } }
+
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<!-- ===== 1. HTML: estrutura principal ===== -->
+<main class="container">
+  <header class="hero">
+    <span class="selo">Organize seu dia</span>
+    <h1>📋 Gerenciador de Atividades</h1>
+    <p>Cadastre, organize e acompanhe suas tarefas em um só lugar.</p>
+  </header>
+
+  <section class="painel" aria-labelledby="t-form">
+    <h2 id="t-form">Nova atividade</h2>
+    <form id="form-tarefa">
+      <label class="campo-nome">Nome da atividade
+        <input type="text" id="nome" maxlength="80" placeholder="Ex.: Estudar para a prova" required>
+      </label>
+      <label>Data de entrega
+        <input type="date" id="data" required>
+      </label>
+      <label>Categoria
+        <select id="categoria" required></select>
+      </label>
+      <label>Prioridade
+        <select id="prioridade" required>
+          <option value="alta">Alta</option>
+          <option value="media" selected>Média</option>
+          <option value="baixa">Baixa</option>
+        </select>
+      </label>
+      <label class="campo-nome campo-obs">Observações (opcional)
+        <textarea id="obs" maxlength="500" placeholder="Ex.: levar o caderno, revisar o capítulo 3..."></textarea>
+      </label>
+      <button type="submit" class="btn-principal">Adicionar atividade</button>
+    </form>
+  </section>
+
+  <section class="painel" aria-labelledby="t-prog">
+    <h2 id="t-prog">Progresso</h2>
+    <div class="progresso-texto"><span id="prog-texto">0 de 0 concluídas</span><span id="prog-pct">0%</span></div>
+    <div class="barra" role="progressbar" aria-labelledby="t-prog" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="barra"><div id="barra-fill"></div></div>
+  </section>
+
+  <section aria-labelledby="t-lista">
+    <h2 id="t-lista" style="font-size:1.05rem;margin:0 0 10px">Atividades</h2>
+    <div class="filtros" id="filtros" role="group" aria-label="Filtrar por categoria" style="margin-bottom:14px"></div>
+    <ul id="lista"></ul>
+  </section>
+
+  <section class="painel painel-notas" aria-labelledby="t-notas">
+    <div class="xn-cab">
+      <h2 id="t-notas">Anotações</h2>
+      <span id="xn-cont">0 anotações</span>
+    </div>
+    <div class="xn-busca">
+      <span aria-hidden="true">🔍</span>
+      <input type="search" id="xn-busca" placeholder="Pesquisar anotações" aria-label="Pesquisar anotações">
+    </div>
+    <ul id="xn-grade" class="xn-grade"></ul>
+    <button type="button" class="xn-fab" id="xn-nova" aria-label="Nova anotação">+</button>
+  </section>
+
+  <div class="xn-ed" id="editor" hidden role="dialog" aria-modal="true" aria-label="Editor de anotação">
+    <div class="xn-barra">
+      <button type="button" id="xn-voltar" aria-label="Voltar e salvar">‹</button>
+      <div class="xn-acoes">
+        <button type="button" id="xn-excluir" aria-label="Excluir anotação">🗑</button>
+        <button type="button" id="xn-ok" aria-label="Concluir">✓</button>
+      </div>
+    </div>
+    <div class="xn-corpo">
+      <input type="text" id="xn-titulo" class="xn-titulo" maxlength="80" placeholder="Título" aria-label="Título">
+      <div class="xn-data" id="xn-data"></div>
+      <textarea id="xn-texto" class="xn-texto" placeholder="Comece a escrever..." aria-label="Texto da anotação"></textarea>
+    </div>
+  </div>
+</main>
+
+<script>
+/* ===== 3. JavaScript: funcionalidades ===== */
+const CATEGORIAS = ["Estudos", "Trabalho", "Pessoal", "Saúde", "Outros"];
+const PRIORIDADES = { alta: "Alta", media: "Média", baixa: "Baixa" };
+
+let tarefas = [];
+let filtroAtual = "Todas";
+
+try {
+  const salvo = JSON.parse(localStorage.getItem("tarefas") || "[]");
+  if (Array.isArray(salvo)) tarefas = salvo;
+} catch (e) { tarefas = []; }
+
+function salvar() {
+  try { localStorage.setItem("tarefas", JSON.stringify(tarefas)); } catch (e) {}
+}
+
+function hoje() {
+  const d = new Date();
+  const p = n => String(n).padStart(2, "0");
+  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+}
+
+function formatarData(iso) {
+  const [a, m, d] = iso.split("-");
+  return d + "/" + m + "/" + a;
+}
+
+function el(tag, classe, texto) {
+  const e = document.createElement(tag);
+  if (classe) e.className = classe;
+  if (texto !== undefined) e.textContent = texto;
+  return e;
+}
+
+// Preenche o select de categorias e os botões de filtro
+const selCategoria = document.getElementById("categoria");
+CATEGORIAS.forEach(c => selCategoria.add(new Option(c, c)));
+
+function renderFiltros() {
+  const box = document.getElementById("filtros");
+  box.innerHTML = "";
+  ["Todas", ...CATEGORIAS].forEach(c => {
+    const b = el("button", "", c);
+    b.type = "button";
+    b.setAttribute("aria-pressed", c === filtroAtual);
+    b.addEventListener("click", () => { filtroAtual = c; renderFiltros(); renderLista(); });
+    box.appendChild(b);
+  });
+}
+
+// Cadastrar tarefa
+document.getElementById("form-tarefa").addEventListener("submit", e => {
+  e.preventDefault();
+  const nome = document.getElementById("nome").value.trim();
+  if (!nome) return;
+  tarefas.push({
+    id: Date.now() + Math.random().toString(36).slice(2, 7),
+    nome,
+    data: document.getElementById("data").value,
+    categoria: selCategoria.value,
+    prioridade: document.getElementById("prioridade").value,
+    obs: document.getElementById("obs").value.trim(),
+    concluida: false
+  });
+  e.target.reset();
+  document.getElementById("prioridade").value = "media";
+  salvar();
+  renderTudo();
+});
+
+// Observações de cada atividade
+let editandoObs = null;
+function salvarObs(id, texto) {
+  const t = tarefas.find(x => x.id === id);
+  if (t) t.obs = texto.trim();
+  editandoObs = null;
+  salvar(); renderLista();
+}
+
+// Marcar como concluída / excluir
+function alternar(id) {
+  const t = tarefas.find(x => x.id === id);
+  if (t) t.concluida = !t.concluida;
+  salvar(); renderTudo();
+}
+function excluir(id) {
+  tarefas = tarefas.filter(x => x.id !== id);
+  salvar(); renderTudo();
+}
+
+// Exibir tarefas (com filtro por categoria)
+function renderLista() {
+  const ul = document.getElementById("lista");
+  ul.innerHTML = "";
+  const hojeIso = hoje();
+  const visiveis = tarefas
+    .filter(t => filtroAtual === "Todas" || t.categoria === filtroAtual)
+    .sort((a, b) => (a.concluida - b.concluida) || a.data.localeCompare(b.data));
+
+  if (!visiveis.length) {
+    ul.appendChild(el("li", "vazio", tarefas.length
+      ? "Nenhuma atividade nesta categoria."
+      : "Nenhuma atividade cadastrada ainda. Adicione a primeira acima."));
+    return;
+  }
+
+  let focar = null;
+  visiveis.forEach(t => {
+    const li = el("li", "cartao " + t.prioridade + (t.concluida ? " concluida" : ""));
+
+    const chk = document.createElement("input");
+    chk.type = "checkbox";
+    chk.checked = t.concluida;
+    chk.setAttribute("aria-label", "Marcar “" + t.nome + "” como concluída");
+    chk.addEventListener("change", () => alternar(t.id));
+
+    const info = el("div", "info");
+    info.appendChild(el("div", "nome", t.nome));
+    const meta = el("div", "meta");
+    const atrasada = !t.concluida && t.data < hojeIso;
+    meta.appendChild(el("span", atrasada ? "atrasada" : "", "📅 " + formatarData(t.data) + (atrasada ? " (atrasada)" : "")));
+    const ICONES = { Estudos: "📚", Trabalho: "💼", Pessoal: "🏠", Saúde: "💚", Outros: "✨" };
+    meta.appendChild(el("span", "etiqueta", (ICONES[t.categoria] || "🏷️") + " " + t.categoria));
+    meta.appendChild(el("span", "etiqueta p-" + t.prioridade, "Prioridade " + PRIORIDADES[t.prioridade].toLowerCase()));
+    info.appendChild(meta);
+
+    if (editandoObs === t.id) {
+      const ta = document.createElement("textarea");
+      ta.className = "obs-edit";
+      ta.maxLength = 500;
+      ta.value = t.obs || "";
+      ta.placeholder = "Escreva uma observação...";
+      ta.setAttribute("aria-label", "Observações de “" + t.nome + "”");
+      const acoesObs = el("div", "obs-acoes");
+      const ok = el("button", "btn-principal btn-mini", "Salvar");
+      ok.type = "button";
+      ok.addEventListener("click", () => salvarObs(t.id, ta.value));
+      const cancelar = el("button", "btn-mini", "Cancelar");
+      cancelar.type = "button";
+      cancelar.addEventListener("click", () => { editandoObs = null; renderLista(); });
+      acoesObs.append(ok, cancelar);
+      info.append(ta, acoesObs);
+      focar = ta;
+    } else if (t.obs) {
+      info.appendChild(el("div", "obs", "📝 " + t.obs));
+    }
+
+    const btnObs = el("button", "btn-obs", t.obs ? "Editar obs." : "+ Observação");
+    btnObs.type = "button";
+    btnObs.setAttribute("aria-label", (t.obs ? "Editar" : "Adicionar") + " observação de “" + t.nome + "”");
+    btnObs.addEventListener("click", () => { editandoObs = t.id; renderLista(); });
+
+    const del = el("button", "btn-excluir", "Excluir");
+    del.type = "button";
+    del.setAttribute("aria-label", "Excluir “" + t.nome + "”");
+    del.addEventListener("click", () => excluir(t.id));
+
+    const acoes = el("div", "acoes");
+    acoes.append(btnObs, del);
+    li.append(chk, info, acoes);
+    ul.appendChild(li);
+  });
+  if (focar) focar.focus();
+}
+
+// Calcular e exibir progresso
+function renderProgresso() {
+  const total = tarefas.length;
+  const feitas = tarefas.filter(t => t.concluida).length;
+  const pct = total ? Math.round((feitas / total) * 100) : 0;
+  document.getElementById("prog-texto").textContent = feitas + " de " + total + (total === 1 ? " concluída" : " concluídas");
+  document.getElementById("prog-pct").textContent = pct + "%";
+  document.getElementById("barra-fill").style.width = pct + "%";
+  document.getElementById("barra").setAttribute("aria-valuenow", pct);
+}
+
+function renderTudo() { renderLista(); renderProgresso(); }
+
+/* ===== Anotações ===== */
+let anotacoes = [];
+try {
+  const sa = JSON.parse(localStorage.getItem("anotacoes") || "[]");
+  if (Array.isArray(sa)) anotacoes = sa;
+} catch (e) { anotacoes = []; }
+
+function salvarAnotacoes() {
+  try { localStorage.setItem("anotacoes", JSON.stringify(anotacoes)); } catch (e) {}
+}
+
+const $ = id => document.getElementById(id);
+let notaAberta = null; // id da anotação em edição (null = nova)
+
+function resumo(n) {
+  const titulo = (n.titulo || "").trim();
+  if (titulo) return { t: titulo, p: n.texto || "" };
+  const [primeira, ...resto] = (n.texto || "").split("\n");
+  return { t: primeira, p: resto.join("\n").trim() };
+}
+
+function dataCurta(iso) {
+  const d = new Date(iso), h = new Date(), ontem = new Date(h);
+  ontem.setDate(h.getDate() - 1);
+  if (d.toDateString() === h.toDateString()) return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  if (d.toDateString() === ontem.toDateString()) return "Ontem";
+  return d.toLocaleDateString("pt-BR", { day: "numeric", month: "short" });
+}
+
+function abrirEditor(id) {
+  const n = anotacoes.find(x => x.id === id);
+  notaAberta = n ? n.id : null;
+  $("xn-titulo").value = n ? (n.titulo || "") : "";
+  $("xn-texto").value = n ? (n.texto || "") : "";
+  $("xn-data").textContent = n
+    ? "Editado em " + new Date(n.atualizada || n.criada).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })
+    : "Nova anotação";
+  $("xn-excluir").style.visibility = n ? "visible" : "hidden";
+  $("editor").hidden = false;
+  document.body.style.overflow = "hidden";
+  (n ? $("xn-texto") : $("xn-titulo")).focus();
+}
+
+function fecharEditor(salvar) {
+  if (salvar) {
+    const titulo = $("xn-titulo").value.trim(), texto = $("xn-texto").value.trim();
+    const n = anotacoes.find(x => x.id === notaAberta);
+    if (!titulo && !texto) {
+      if (n) anotacoes = anotacoes.filter(x => x !== n);
+    } else if (n) {
+      if ((n.titulo || "") !== titulo || (n.texto || "") !== texto) {
+        n.titulo = titulo; n.texto = texto; n.atualizada = new Date().toISOString();
+      }
+    } else {
+      const agora = new Date().toISOString();
+      anotacoes.push({ id: Date.now() + Math.random().toString(36).slice(2, 7), titulo, texto, criada: agora, atualizada: agora });
+    }
+    salvarAnotacoes();
+  }
+  $("editor").hidden = true;
+  document.body.style.overflow = "";
+  notaAberta = null;
+  renderAnotacoes();
+}
+
+$("xn-nova").addEventListener("click", () => abrirEditor(null));
+$("xn-voltar").addEventListener("click", () => fecharEditor(true));
+$("xn-ok").addEventListener("click", () => fecharEditor(true));
+$("xn-excluir").addEventListener("click", () => {
+  anotacoes = anotacoes.filter(x => x.id !== notaAberta);
+  salvarAnotacoes();
+  fecharEditor(false);
+});
+$("xn-busca").addEventListener("input", renderAnotacoes);
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && !$("editor").hidden) fecharEditor(true);
+});
+
+function renderAnotacoes() {
+  const ul = $("xn-grade");
+  ul.innerHTML = "";
+  const q = $("xn-busca").value.trim().toLowerCase();
+  const quando = n => n.atualizada || n.criada;
+  const lista = anotacoes
+    .filter(n => ((n.titulo || "") + " " + (n.texto || "")).toLowerCase().includes(q))
+    .sort((a, b) => quando(b).localeCompare(quando(a)));
+  $("xn-cont").textContent = anotacoes.length + (anotacoes.length === 1 ? " anotação" : " anotações");
+  if (!lista.length) {
+    ul.appendChild(el("li", "xn-vazio", q ? "Nada encontrado." : "Nenhuma anotação ainda. Toque em + para criar."));
+    return;
+  }
+  lista.forEach(n => {
+    const r = resumo(n);
+    const b = el("button", "xn-card");
+    b.type = "button";
+    b.appendChild(el("div", "xn-t", r.t || "Sem título"));
+    if (r.p) b.appendChild(el("div", "xn-p", r.p));
+    b.appendChild(el("div", "xn-d", dataCurta(quando(n))));
+    b.addEventListener("click", () => abrirEditor(n.id));
+    const li = el("li");
+    li.appendChild(b);
+    ul.appendChild(li);
+  });
+}
+
+renderFiltros();
+renderTudo();
+renderAnotacoes();
+</script>
+</body>
+</html>
